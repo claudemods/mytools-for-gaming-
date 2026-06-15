@@ -342,4 +342,9 @@ $copyBtn.Add_Click({
     [System.Windows.Forms.MessageBox]::Show("Output copied to clipboard!", "Copied", "OK", "Information")
 })
 
-$form.ShowDialog()
+# Fix: Suppress cancel dialog on exit
+$form.Add_FormClosing({
+    $_.Cancel = $false
+})
+
+$null = $form.ShowDialog()
