@@ -298,28 +298,28 @@ $button.Add_Click({
     }
     if ($c -gt 0) { $st = 20000 * $c; $listBox.Items.Add(("5 Star Arrest".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
-    # Warrants Executed - $50,000
+    # Warrants Executed - $50,000 (matches both "warrant executed" and "warrants executed")
     $c = 0
     foreach ($line in $cleanedLines) {
         $lineLower = $line.ToLower()
-        if ($lineLower -match "warrants executed") { $c++ }
+        if ($lineLower -match "warrants? executed") { $c++ }
     }
     if ($c -gt 0) { $st = 50000 * $c; $listBox.Items.Add(("Warrants Executed".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
     $officialEvents = @(
-        @{D="FZ raids"; P="fz raid|^fz$"},
-        @{D="Black Market Raid"; P="black ?market raid|^bm$"},
-        @{D="Subs"; P="subs"},
-        @{D="Vehicle theft"; P="(vehicle|car) theft"},
-        @{D="Gang Raid"; P="gang raid"},
-        @{D="Informant"; P="informant"},
-        @{D="Aircraft carrier"; P="aircraft carrier"},
-        @{D="Prison Protection"; P="prison protection"},
-        @{D="Data Breach"; P="(data breach|hacker attack)"},
-        @{D="Bank Protection"; P="bank protection"},
-        @{D="Gun Store"; P="gun store"},
-        @{D="24/7 Store"; P="store robbery|24/7 store|^store$"},
-        @{D="Dealer Recruitment"; P="dealer recruitment"}
+        @{D="FZ raids"; P="fz raids?|^fz$"},
+        @{D="Black Market Raid"; P="black ?market raids?|^bm$"},
+        @{D="Subs"; P="subs?"},
+        @{D="Vehicle theft"; P="(vehicle|car) thefts?"},
+        @{D="Gang Raid"; P="gang raids?"},
+        @{D="Informant"; P="informants?"},
+        @{D="Aircraft carrier"; P="aircraft carriers?"},
+        @{D="Prison Protection"; P="prison protections?"},
+        @{D="Data Breach"; P="(data breaches?|hacker attacks?)"},
+        @{D="Bank Protection"; P="bank protections?"},
+        @{D="Gun Store"; P="gun stores?"},
+        @{D="24/7 Store"; P="store robber(y|ies)|24/7 stores?|^store$"},
+        @{D="Dealer Recruitment"; P="dealer recruitments?"}
     )
     
     foreach ($evt in $officialEvents) {
