@@ -184,7 +184,7 @@ $totalLabel.Font = New-Object System.Drawing.Font("Consolas", 13, [System.Drawin
 $totalLabel.TextAlign = "MiddleRight"
 $form.Controls.Add($totalLabel)
 
-# Save Log button - With better color
+# Save Log button
 $saveLogBtn = New-Object System.Windows.Forms.Button
 $saveLogBtn.Text = "SAVE LOG"
 $saveLogBtn.Location = New-Object System.Drawing.Point(20,712)
@@ -197,24 +197,25 @@ $saveLogBtn.FlatAppearance.BorderSize = 0
 $form.Controls.Add($saveLogBtn)
 
 function Strip-Formatting($txt) {
+    # Handle new style: Event: Something by group
+    if ($txt -match '^Event:\s*') {
+        $txt = $txt -replace '^Event:\s*', ''
+        $txt = $txt -replace '\s+by\s+\S+(\s+\S+)*$', ''
+    }
+    # Remove Date: and Time: lines
+    if ($txt -match '^(Date|Time):') {
+        return ""
+    }
+    # Remove old markdown formatting
     $txt = $txt -replace '#+\s*', ''
-    $txt = $txt -replace '\*', ''
     $txt = $txt -replace '^\s*-\s*', ''
+    $txt = $txt -replace '\*', ''
     $txt = $txt -replace '\s*By\s+\S+(\s+\S+)*', ''
+    # Remove Discord user mentions like <@362637146110033933>
+    $txt = $txt -replace '<@\d+>', ''
     $txt = $txt -replace '\s+', ' '
     $txt = $txt.Trim()
     return $txt
-}
-
-function Count-Matches($txt, $word) {
-    $count = 0
-    $temp = $txt
-    while ($temp.Contains($word)) {
-        $count++
-        $index = $temp.IndexOf($word)
-        $temp = $temp.Substring($index + $word.Length)
-    }
-    return $count
 }
 
 # Save log button click event
@@ -252,8 +253,6 @@ $button.Add_Click({
             $cleanedLines += $clean
         }
     }
-    $text = ($cleanedLines -join " ") -replace '\s+', ' '
-    $textLower = $text.ToLower()
     
     # Agent name
     if ($global:agentName -ne "") {
@@ -268,46 +267,68 @@ $button.Add_Click({
     $found = $false
     
     # Cannabis Busted - $1,500 Each
-    $c = Count-Matches $textLower "cannabis busted"
+    $c = 0
+    foreach ($line in $cleanedLines) {
+        $lineLower = $line.ToLower()
+        if ($lineLower -match "cannabis busted") { $c++ }
+    }
     if ($c -gt 0) { $st = 1500 * $c; $listBox.Items.Add(("Cannabis Busted".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
     # Contraband Seized - $3,500 Each
-    $c = Count-Matches $textLower "contraband seized"
+    $c = 0
+    foreach ($line in $cleanedLines) {
+        $lineLower = $line.ToLower()
+        if ($lineLower -match "contraband seized") { $c++ }
+    }
     if ($c -gt 0) { $st = 3500 * $c; $listBox.Items.Add(("Contraband Seized".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
     # 3-4 Star Arrest - $15,000
-    $c = Count-Matches $textLower "3-4 star arrest"
+    $c = 0
+    foreach ($line in $cleanedLines) {
+        $lineLower = $line.ToLower()
+        if ($lineLower -match "3-4 star arrest") { $c++ }
+    }
     if ($c -gt 0) { $st = 15000 * $c; $listBox.Items.Add(("3-4 Star Arrest".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
     # 5 Star Arrest - $20,000
-    $c = Count-Matches $textLower "5 star arrest"
+    $c = 0
+    foreach ($line in $cleanedLines) {
+        $lineLower = $line.ToLower()
+        if ($lineLower -match "5 star arrest") { $c++ }
+    }
     if ($c -gt 0) { $st = 20000 * $c; $listBox.Items.Add(("5 Star Arrest".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
     # Warrants Executed - $50,000
-    $c = Count-Matches $textLower "warrants executed"
+    $c = 0
+    foreach ($line in $cleanedLines) {
+        $lineLower = $line.ToLower()
+        if ($lineLower -match "warrants executed") { $c++ }
+    }
     if ($c -gt 0) { $st = 50000 * $c; $listBox.Items.Add(("Warrants Executed".PadRight(28) + "x" + $c.ToString().PadRight(8) + "$" + $st.ToString("N0"))); $total += $st; $found = $true }
     
-    # Official Events - $6,000 Each
     $officialEvents = @(
-        @{D="FZ raids"; S=@("fz raid")},
-        @{D="Black Market Raid"; S=@("black market raid")},
-        @{D="Subs"; S=@("subs")},
-        @{D="Vehicle theft"; S=@("vehicle theft")},
-        @{D="Gang Raid"; S=@("gang raid")},
-        @{D="Informant"; S=@("informant")},
-        @{D="Aircraft carrier"; S=@("aircraft carrier")},
-        @{D="Prison Protection"; S=@("prison protection")},
-        @{D="Data Breach"; S=@("data breach", "hacker attack")},
-        @{D="Bank Protection"; S=@("bank protection")},
-        @{D="Gun Store"; S=@("gun store")},
-        @{D="24/7 Store"; S=@("store robbery", "24/7 store")},
-        @{D="Dealer Recruitment"; S=@("dealer recruitment")}
+        @{D="FZ raids"; P="fz raid|^fz$"},
+        @{D="Black Market Raid"; P="black ?market raid|^bm$"},
+        @{D="Subs"; P="subs"},
+        @{D="Vehicle theft"; P="(vehicle|car) theft"},
+        @{D="Gang Raid"; P="gang raid"},
+        @{D="Informant"; P="informant"},
+        @{D="Aircraft carrier"; P="aircraft carrier"},
+        @{D="Prison Protection"; P="prison protection"},
+        @{D="Data Breach"; P="(data breach|hacker attack)"},
+        @{D="Bank Protection"; P="bank protection"},
+        @{D="Gun Store"; P="gun store"},
+        @{D="24/7 Store"; P="store robbery|24/7 store|^store$"},
+        @{D="Dealer Recruitment"; P="dealer recruitment"}
     )
     
     foreach ($evt in $officialEvents) {
         $c = 0
-        foreach ($s in $evt.S) {
-            $c += Count-Matches $textLower $s
+        foreach ($line in $cleanedLines) {
+            $lineLower = $line.ToLower()
+            if ($lineLower -match $evt.P) {
+                $c++
+            }
         }
         if ($c -gt 0) {
             $st = 6000 * $c
